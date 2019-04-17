@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Shoview</title>
+
+    <style>
+      body {
+        font-family: Helvetica;
+      }
+
+      p {
+        margin: 5px;
+      }
+
+      #hostname {
+        color: #aaa;
+        font-size: 0.8em;
+      }
+
+      .vulns {
+        margin: 5px;
+      }
+
+      .row-wrapper {
+        display: block;
+        border: 1px solid black;
+      }
+
+      .host_header {
+        display: inline;
+        font-size: 2em;
+        font-family: monospace;
+        margin: 5px;
+      }
+
+      .cve {
+        display: inline;
+      }
+
+      .cve-summary {
+        color: black;
+      }
+
+      .cve-reference {
+        color: black;
+      }
+
+      .exploitable {
+        color: crimson;
+        font-weight: bold;
+      }
+
+      .title {
+        display: inline;
+        font-weight: bold;
+      }
+
+      .cve:hover .hideable {
+          display: block;
+      }
+
+      .hideable {
+          display: none;
+          position: absolute;
+          background-color: #00ff00ee;
+          border-radius: 1em;
+          padding: 1em;
+      }
+    </style>
+
+  </head>
+  <body>
+    {% for row in data %}
+    <div class=row-wrapper>
+      <div class=info>
+        <div class=title>{#loop.index #}</div>
+        {# if http.title exists, it is the host header; otherwise ip_str #}
+        {%if row.http and row.http.title %}
+          <div class=host_header> {{row.http.title}} </div>
+          {%if row.ip_str %} <p> {{row.ip_str}} </p> {%endif%}
+          {%if row.hostnames %} <p id=hostname> {{row.hostnames}} </p> {%endif%}
+        {%else%}
+          <div class=host_header>{{row.ip_str}}</div>
+          {%if row.hostnames %} <p id=hostname> {{row.hostnames}} </p> {%endif%}
+        {%endif%}
+
+        {%if row.product %} <p> {{row.product}} </p> {%endif%}
+        {%if row.cpe %} <p> {{row.cpe}} </p> {%endif%}
+        {%if row.server %} <p> {{row.server}} </p> {%endif%}
+        {%if row.os %} <p> {{row.os}} </p> {%endif%}
+        {%if row.tags %} <p> {{row.tags}} </p> {%endif%}
+
+        {%if row.location %}
+          {%if row.location.country_name %} <p> {% if row.location.city %}{{row.location.city}}, {%endif%}{{row.location.country_name }} </p> {%endif%}
+        {%endif%}
+
+        {%if row.ssl %} <p> {{row.ssl}} </p> {%endif%}
+        {%if row.issuer %} <p> {{row.issuer}} {%endif%}
+
+        {%if row.cert %}
+        <p>{{row.cert}}</p>
+          {% if row.cert.issuer %}
+            {%if row.cert.issuer.C %} <p> {{row.cert.issuer.C}} </p> {%endif%}
+            {%if row.cert.issuer.CN %} <p> {{row.cert.issuer.CN}} </p> {%endif%}
+            {%if row.cert.issuer.O %} <p> {{row.cert.issuer.O}} </p> {%endif%}
+          {%endif%}
+        {%endif%}
+      </div> <!-- info -->
+
+      <div class=vulns>
+      {%if row.vulns %}
+      {% for k,v in row.vulns %} {# for each vulnerability #}
+      <div>
+        <div class=cve>
+        {# check if we should color the cve #}
+        {% set_global color = 0 %}
+        {% for reference in v.references %}
+          {%if reference is containing("exploit-db") %}
+            {% set_global color = 1 %}{% break %}
+          {%endif%}
+          {%if reference is containing("rapid7") %}
+            {% set_global color = 1 %}{% break %}
+          {%endif%}
+        {%endfor%}
+        {% if color == 0 %}
+          <span>{{k}} {{v.cvss}}</span>
+        {% else %}
+          <span class=exploitable>{{k}} {{v.cvss}}</span>
+        {% endif %}
+        {% set_global color = 0 %}
+
+          <div class=hideable>
+            <div class=cve-summary>{{v.summary}}</div>
+            {% for reference in v.references %}
+            <div class=cve-reference><a href="{{reference}}" target=_blank>{{reference}}</a></div>
+            {% endfor %}
+            </div>
+        </div>
+      </div>
+      {%endfor%}
+      {% endif %}
+      </div> <!-- vulns -->
+    </div>
+    {% endfor %}
+  </body>
+</html>
